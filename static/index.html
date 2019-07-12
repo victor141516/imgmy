@@ -13,7 +13,7 @@
         </div>
         <h1>imgmy (not ur)</h1>
         <input type="file" name="file-input" id="file-input">
-        <p id="dropping-message" class="hidden">Drag one or more files to this Drop Zone...</p>
+        <p id="dropping-message" class="hidden">Drop it!</p>
         <p id="error-getting" class="hidden error">Error getting your image</p>
         <p id="error-not-image" class="hidden error">That's NOT an image</p>
         <div id="url-container" class="hidden">
@@ -112,7 +112,10 @@
         }, false)
     })
 
-    dropZone.ondrop = handleImageEvent;
+    dropZone.ondrop = e => {
+        droppingMessage.classList.add('hidden');
+        handleImageEvent(e);
+    }
     manualFileInput.oninput = handleImageEvent;
     body.onpaste = handleImageEvent
 </script>
