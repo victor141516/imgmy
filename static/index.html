@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>imgmy</title>
+</head>
+
+<body id="body">
+    <div id="inner-body">
+        <div id="image-preview-container" class="hidden">
+            <img id="image-preview">
+        </div>
+        <h1>imgmy (not ur)</h1>
+        <input type="file" name="file-input" id="file-input">
+        <p id="dropping-message" class="hidden">Drag one or more files to this Drop Zone...</p>
+        <p id="error-getting" class="hidden error">Error getting your image</p>
+        <p id="error-not-image" class="hidden error">That's NOT an image</p>
+        <div id="url-container" class="hidden">
+            <input id="url-input" name="url" type="text">
+            <label for="url" id="url-label">It should be copied, but you can press Enter to copy again (or maybe it failed ¯\_(ツ)_/¯)</label>
+        </div>
+    </div>
+    <div id="drop-zone"></div>
+</body>
+<script>
+    const body = document.getElementById('body');
+    const errorGetting = document.getElementById('error-getting');
+    const errorNotImage = document.getElementById('error-not-image');
+    const urlInput = document.getElementById('url-input');
+    const urlLabel = document.getElementById('url-label');
+    const urlContainer = document.getElementById('url-container');
+    const dropZone = document.getElementById('drop-zone');
+    const droppingMessage = document.getElementById('dropping-message');
+    const manualFileInput = document.getElementById('file-input');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+
+    async function upload(file) {
+        return await fetch('/up', {
+            method: 'POST',
+            body: file
+        }).then(
+            response => response.json()
+        );
+    };
+
+    function changeUrlInput(val) {
+        urlInput.value = val;
+        imagePreview.src = val;
+        onUrlInputChange();
+    }
+
+    function onUrlInputChange() {
+        if (urlInput.value === '') {
+            imagePreviewContainer.classList.add('hidden');
+            urlContainer.classList.add('hidden');
+        } else {
+            imagePreviewContainer.classList.remove('hidden');
+            urlContainer.classList.remove('hidden');
+            urlInput.focus();
+            urlInput.select();
+            document.execCommand('copy');
+        }
+    };
+
+    function getImageFromEvent(e) {
+        try {
+            const fDrop = ((e.dataTransfer || {}).files || [false])[0];
+            const fManualInput = (e.target.files || [false])[0];
+            if (fDrop) return fDrop;
+            else if (fManualInput) return fManualInput;
+            else return (e.clipboardData || e.originalEvent.clipboardData).items[0].getAsFile();
+        } catch {
+            errorGetting.classList.remove('hidden');
+            setTimeout(() => errorGetting.classList.add('hidden'), 3000);
+            return false;
+        }
+    }
+
+    function checkImageType(imgBlob) {
+        if (!imgBlob.type.startsWith('image/')) {
+            errorNotImage.classList.remove('hidden');
+            setTimeout(() => errorNotImage.classList.add('hidden'), 3000);
+            return false;
+        } else return true;
+    }
+
+    function handleImageEvent(event) {
+        const imgBlob = getImageFromEvent(event);
+        if (!imgBlob) return;
+        if (!checkImageType(imgBlob)) return;
+        upload(imgBlob).then(res => changeUrlInput(`${location.origin}/${res.code}`));
+    }
+
+    urlInput.oninput = onUrlInputChange;
+    urlInput.onchange = onUrlInputChange;
+    urlInput.onkeypress = ({keyCode}) => {
+        if (keyCode == 13) {
+            urlInput.focus();
+            urlInput.select();
+            document.execCommand('copy');
+        }
+    }
+
+    dropZone.ondragenter = () => droppingMessage.classList.remove('hidden');
+    dropZone.ondragleave = () => droppingMessage.classList.add('hidden');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false)
+    })
+
+    dropZone.ondrop = handleImageEvent;
+    manualFileInput.oninput = handleImageEvent;
+    body.onpaste = handleImageEvent
+</script>
+
+<style lang="css">
+    #body {
+        margin: -21px 0 0 0;
+    }
+
+    #drop-zone {
+        z-index: -10;
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #inner-body {
+        position: absolute;
+        margin: 8px;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .error {
+        font-size: 2rem;
+        border: 3px solid red;
+        color: red;
+    }
+
+    #url-container {
+        display: flex;
+        flex-direction: column;
+        width: 30%;
+        min-width: 300px;
+    }
+
+    #file-input {
+        margin-bottom: 1rem;
+    }
+
+    #image-preview-container {
+        box-sizing: border-box;
+        position: absolute;
+        width: 99vw;
+        height: 100vh;
+        z-index: -100;
+    }
+
+    #image-preview {
+        float: right;
+        width: 200px;
+        max-height: 200px;
+    }
+</style>
+
+</html>
